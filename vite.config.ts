@@ -7,7 +7,7 @@ import process from "node:process";
 import path from "path";
 
 import fs from "fs/promises";
-import manifest from "./manifest.json";
+import manifest from "./public/manifest.json";
 
 import dotenv from "dotenv";
 import dotenvExpand from "dotenv-expand";
@@ -31,13 +31,26 @@ export default defineConfig(({ command }) => {
             );
             return;
           }
-          const dist = process.env.OB_PLUGIN_DIST + manifest.id + "-dev";
+          const dist = process.env.OB_PLUGIN_DIST + manifest.id + "-dev2";
 
-          await fs.mkdir(dist, { recursive: true });
+          // console.log("dist", dist);
+
+          // await fs.mkdir(dist, { recursive: true });
+
+          // keep dist folder exists
+          try {
+            await fs.access(dist);
+          } catch (error) {
+            await fs.mkdir(dist);
+          }
 
           const copy = async (src: string, dist: string) => {
-            await fs.copyFile(src, path.resolve(dist, src));
+            await fs.copyFile(
+              path.resolve("./dist", src),
+              path.resolve(dist, src)
+            );
           };
+
           // do something
           // copy file
           await Promise.all([
@@ -45,6 +58,7 @@ export default defineConfig(({ command }) => {
             await copy("./styles.css", dist),
             await copy("./manifest.json", dist),
             await copy("./.hotreload", dist),
+            await copy("./versions.json", dist),
           ]);
           console.log("复制结果到", dist);
         },
@@ -57,7 +71,7 @@ export default defineConfig(({ command }) => {
         ignoreTryCatch: false,
       },
       lib: {
-        entry: fileURLToPath(new URL("./src/starterIndex.ts", import.meta.url)),
+        entry: fileURLToPath(new URL("./src/index.ts", import.meta.url)),
         formats: ["cjs"],
       },
       css: {},
@@ -100,7 +114,7 @@ export default defineConfig(({ command }) => {
       },
       // Use root as the output dir
       emptyOutDir: false,
-      outDir: ".",
+      outDir: "./dist",
     },
     resolve: {
       alias: {
