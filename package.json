@@ -1,6 +1,6 @@
 {
   "name": "obsidian-vue-starter",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A plugin development template for devs who want to use vue in Obsidian.",
   "main": "main.js",
   "scripts": {

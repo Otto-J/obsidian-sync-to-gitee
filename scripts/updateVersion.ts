@@ -2,10 +2,10 @@
 import fsPromise from "fs/promises";
 import { exec } from "child_process";
 import inquirer from "inquirer";
-import pkg from "../package.json";
 import manifest from "../manifest.json";
 
 async function syncManifest() {
+  const pkg = JSON.parse(await fsPromise.readFile("./package.json", "utf8"));
   const info = {
     version: pkg.version,
     description: pkg.description,
@@ -16,6 +16,8 @@ async function syncManifest() {
     ...manifest,
     ...info,
   };
+
+  console.log("newManifest", newManifest);
 
   await fsPromise.writeFile(
     "./manifest.json",
