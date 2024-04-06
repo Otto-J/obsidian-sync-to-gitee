@@ -317,7 +317,9 @@ const handleSubmit = async ({
 
       create_time: new Date(ctime).toLocaleString(),
       update_time: new Date().toLocaleString(),
-      publish_time: fileInfo.value.publish_time ?? new Date().toLocaleString(),
+      publish_time: fileInfo.value.publish_time
+        ? new Date(fileInfo.value.publish_time).toLocaleString()
+        : new Date().toLocaleString(),
     }
   );
 };
