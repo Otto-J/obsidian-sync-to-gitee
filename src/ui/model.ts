@@ -1,5 +1,18 @@
 import { Notice, requestUrl } from "obsidian";
-import { ref } from "vue";
+import { nextTick, ref } from "vue";
+
+interface IFrontMatter {
+  create_time: string;
+  description: string;
+  noteId_gitee: string;
+  noteId_x: string;
+  publish_time: string;
+  slug: string;
+  tags: string[];
+  update_time: string;
+  title: string;
+  [props: string]: any;
+}
 
 export const isAuthOk = async (accessToken: string) => {
   const search = new URLSearchParams({
@@ -166,7 +179,7 @@ export const usePostStatus = () => {
     create_time: "",
     publishTimeMode: "current" as ITimeOptions,
     content: "",
-    frontMatter: {} as Record<string, any>,
+    frontMatter: {} as Partial<IFrontMatter>,
   });
   const isLoading = ref(false);
 
@@ -195,7 +208,9 @@ export const usePostStatus = () => {
     // 如果当前 fm 中有 publish_time 设置 timeMode=custom,并设置
     if (fileInfo.value.frontMatter?.publish_time) {
       fileInfo.value.publishTimeMode = "custom";
-      fileInfo.value.publish_time = fileInfo.value.frontMatter.publish_time;
+      nextTick(() => {
+        fileInfo.value.publish_time = fileInfo.value.frontMatter!.publish_time!;
+      });
     }
   };
 
