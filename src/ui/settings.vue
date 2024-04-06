@@ -93,15 +93,13 @@ const props = defineProps<{
 
 const settings = ref(defaultSettings());
 
-const owner = ref("");
-
 const testConnect = async () => {
   const res = await isAuthOk(settings.value.accessToken);
   console.log(4, res);
   if (res.login) {
     new Notice("连接成功");
     settings.value.isAuth = true;
-    owner.value = res.login;
+    settings.value.owner = res.login;
   } else {
     new Notice("连接失败");
     settings.value.isAuth = false;

@@ -192,9 +192,6 @@ watchEffect(() => {
 });
 
 const handleCreatePost = async ({
-  token,
-  owner,
-  repo,
   content,
   title,
   summary,
@@ -202,9 +199,9 @@ const handleCreatePost = async ({
   slug,
 }: any) => {
   const res = await createPost({
-    token: token,
-    owner,
-    repo,
+    token: settings.value.accessToken!,
+    owner: settings.value.owner!,
+    repo: settings.value.repo!,
     title: title,
     slug: slug,
     summary: summary,
@@ -226,9 +223,6 @@ const handleCreatePost = async ({
 };
 
 const handleUpdatePost = async ({
-  token = "",
-  owner = "",
-  repo = "",
   content = "",
   title = "",
   summary = "",
@@ -238,9 +232,9 @@ const handleUpdatePost = async ({
 }) => {
   // 更新文章
   const res = await updatePost({
-    token,
-    owner,
-    repo,
+    token: settings.value.accessToken!,
+    owner: settings.value.owner!,
+    repo: settings.value.repo!,
     title: title,
     slug: slug,
     summary: summary,
@@ -262,9 +256,6 @@ const handleUpdatePost = async ({
 };
 
 const handleSubmit = async ({
-  token = "",
-  owner = "",
-  repo = "",
   content = "",
   title = "",
   summary = "",
@@ -272,8 +263,7 @@ const handleSubmit = async ({
   slug = "",
   noteID = "",
 }) => {
-  const hasNoteID = !!noteID;
-  const isUpdate = hasNoteID;
+  const isUpdate = !!noteID;
 
   // 如果发布时间是自定义，但是内容为空，设置当前时间
   if (
@@ -286,9 +276,6 @@ const handleSubmit = async ({
   if (isUpdate) {
     // 走更新
     const id = await handleUpdatePost({
-      token,
-      owner,
-      repo,
       content,
       title,
       summary,
@@ -302,10 +289,6 @@ const handleSubmit = async ({
   } else {
     // 走创建
     const id = await handleCreatePost({
-      token,
-      owner,
-      repo,
-
       content,
       title,
       summary,
@@ -334,7 +317,7 @@ const handleSubmit = async ({
 
       create_time: new Date(ctime).toLocaleString(),
       update_time: new Date().toLocaleString(),
-      publish_time: fileInfo.value.publish_time,
+      publish_time: fileInfo.value.publish_time ?? new Date().toLocaleString(),
     }
   );
 };
@@ -342,6 +325,15 @@ const handleSubmit = async ({
 const startUpload = async () => {
   if (isLoading.value) {
     new Notice("正在上传中");
+    return;
+  }
+
+  if (
+    !settings.value.accessToken ||
+    !settings.value.owner ||
+    !settings.value.repo
+  ) {
+    new Notice("请先配置");
     return;
   }
 
@@ -354,10 +346,6 @@ const startUpload = async () => {
   }
 
   const currentConfig = {
-    token: settings.value.accessToken as string,
-    owner: settings.value.owner,
-    repo: settings.value.repo,
-    // file
     content: fileInfo.value.content,
     title: fileInfo.value.title,
     summary: fileInfo.value.summary,

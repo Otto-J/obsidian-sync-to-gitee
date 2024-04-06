@@ -94,7 +94,7 @@ export const updatePost = async (options: IOptions) => {
     labels: (options.tags as string[]).join(),
   };
 
-  console.log(url, _body);
+  // console.log(url, _body);
 
   return requestUrl({
     url: url,
@@ -137,7 +137,6 @@ export const usePluginSettings = () => {
 
     if (!settings.enable) {
       new Notice("插件未启用");
-
       return validate;
     }
     if (!settings.accessToken) {
