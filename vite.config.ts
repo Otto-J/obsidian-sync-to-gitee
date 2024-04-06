@@ -7,7 +7,7 @@ import process from "node:process";
 import path from "path";
 
 import fs from "fs/promises";
-import manifest from "./public/manifest.json";
+import manifest from "./manifest.json";
 
 import dotenv from "dotenv";
 import dotenvExpand from "dotenv-expand";
@@ -23,6 +23,10 @@ export default defineConfig(({ command }) => {
       {
         name: "postbuild-commands",
         async closeBundle() {
+          await fs.copyFile(
+            path.resolve("./manifest.json"),
+            path.resolve("./dist/manifest.json")
+          );
           if (!isWatch) return;
 
           if (!process.env.OB_PLUGIN_DIST) {
@@ -54,8 +58,11 @@ export default defineConfig(({ command }) => {
             await copy("./main.js", dist),
             await copy("./styles.css", dist),
             await copy("./manifest.json", dist),
-            await copy("./.hotreload", dist),
             await copy("./versions.json", dist),
+            await fs.copyFile(
+              path.resolve("./.hotreload"),
+              path.resolve(dist, ".hotreload")
+            ),
           ]);
           console.log("复制结果到", dist);
         },

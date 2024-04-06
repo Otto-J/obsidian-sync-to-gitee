@@ -3,7 +3,7 @@ import fsPromise from "fs/promises";
 import { exec } from "child_process";
 import inquirer from "inquirer";
 import pkg from "../package.json";
-import manifest from "../public/manifest.json";
+import manifest from "../manifest.json";
 
 async function syncManifest() {
   const info = {

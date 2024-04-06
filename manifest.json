@@ -1,9 +1,9 @@
 {
   "id": "sync-to-gitee-issues",
   "name": "Sync to Gitee Issues",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "minAppVersion": "0.12.0",
-  "description": "A plugin development template for devs who want to use vue in Obsidian.",
+  "description": "Sync obsidian note to gitee.com issues",
   "author": "Otto",
   "authorUrl": "https://github.com/otto-j",
   "isDesktopOnly": true
