@@ -82,14 +82,19 @@ async function main() {
     },
   ]);
   if (isTag) {
-    exec(`git tag ${pkg.version}`, (err, stdout, stderr) => {
-      if (err) {
-        console.log(err);
-        process.exit(1);
+    // 先自动提交
+    exec(
+      `git add . && git commit -m "chore: release v${pkg.version}" && git tag ${pkg.version}`,
+      (err, stdout, stderr) => {
+        if (err) {
+          console.log(err);
+          process.exit(1);
+        }
+        console.log(stdout);
+        console.log(stderr);
       }
-      console.log(stdout);
-      console.log(stderr);
-    });
+    );
+
     console.log(`git tag v${pkg.version}`);
   }
 }
