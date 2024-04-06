@@ -33,10 +33,6 @@ export default defineConfig(({ command }) => {
           }
           const dist = process.env.OB_PLUGIN_DIST + manifest.id + "-dev2";
 
-          // console.log("dist", dist);
-
-          // await fs.mkdir(dist, { recursive: true });
-
           // keep dist folder exists
           try {
             await fs.access(dist);
@@ -52,6 +48,7 @@ export default defineConfig(({ command }) => {
           };
 
           // do something
+
           // copy file
           await Promise.all([
             await copy("./main.js", dist),

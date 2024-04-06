@@ -12,6 +12,7 @@
         </div>
         <div class="setting-item-control">
           <input
+            v-model="fileInfo.title"
             type="text"
             placeholder="留空表示默认标题"
             spellcheck="false"
@@ -28,6 +29,7 @@
         <div class="setting-item-control">
           <input
             type="text"
+            v-model="fileInfo.slug"
             placeholder="留空表示默认"
             spellcheck="false"
             tabindex="2"
@@ -43,6 +45,7 @@
         <div class="setting-item-control">
           <input
             type="text"
+            v-model="fileInfo.summary"
             placeholder="留空表示默认"
             spellcheck="false"
             tabindex="2"
@@ -58,32 +61,14 @@
         <div class="setting-item-control">
           <input
             type="text"
+            v-model="fileInfo.rawTags"
             placeholder="留空表示默认"
             spellcheck="false"
             tabindex="2"
           />
         </div>
       </div>
-      <!-- image upload -->
-      <div class="setting-item">
-        <div class="setting-item-info">
-          <div class="setting-item-name">
-            图片是否上传到 IPFS Upload Image to IPFS
-          </div>
-          <div class="setting-item-description">
-            将图片上传至 IPFS，不影响本地笔记，也会稍微增加上传的耗时。
-          </div>
-        </div>
-        <div class="setting-item-control">
-          <div class="checkbox-container" :class="true ? 'is-enabled' : ''">
-            <input
-              type="checkbox"
-              style="width: 100%; height: 100%"
-              tabindex="2"
-            />
-          </div>
-        </div>
-      </div>
+
       <!-- 发布日期 -->
       <div class="setting-item">
         <div class="setting-item-info">
@@ -97,7 +82,7 @@
         </div>
         <div class="setting-item-control">
           <!-- checkbox -->
-          <select class="dropdown">
+          <select class="dropdown" v-model="fileInfo.publishTimeMode">
             <option value="current">使用当前时间</option>
             <option value="create_time">使用 create_time</option>
             <option value="custom">自定义</option>
@@ -105,6 +90,7 @@
           <input
             :disabled="false"
             type="text"
+            v-model="fileInfo.publish_time"
             placeholder="留空表示当前时间"
             spellcheck="false"
             tabindex="3"
@@ -114,7 +100,7 @@
       <!-- noteId -->
       <div class="setting-item">
         <div class="setting-item-info">
-          <div class="setting-item-name">关联 NoteID</div>
+          <div class="setting-item-name">关联 Issues ID</div>
           <div class="setting-item-description">
             若填写视为更新文章，留空视为创建文章
           </div>
@@ -122,6 +108,7 @@
         <div class="setting-item-control">
           <input
             type="text"
+            v-model="fileInfo.noteId"
             placeholder="留空表示创建"
             spellcheck="false"
             tabindex="2"
@@ -130,7 +117,7 @@
       </div>
     </div>
     <div class="modal-button-container">
-      <button class="mod-cta">
+      <button @click="startUpload" class="mod-cta">
         {{ isLoading ? "正在上传" : "开始上传" }}
       </button>
       <button @click="closeModal">取消</button>
@@ -138,8 +125,15 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, reactive, ref, watchEffect } from "vue";
-import { Notice, Modal, TFile, requestUrl, Plugin } from "obsidian";
+import { onMounted, watchEffect } from "vue";
+import { Notice, Modal, TFile, Plugin } from "obsidian";
+import {
+  createPost,
+  usePostStatus,
+  usePluginSettings,
+  updatePost,
+} from "./model";
+import { getFrontMatterByFile, updateFrontMatterByFile } from "@/utils";
 
 const props = defineProps<{
   plugin: Plugin;
@@ -147,26 +141,234 @@ const props = defineProps<{
   file: TFile;
 }>();
 
-const defaultConfig = () => ({});
+const { settings, checkSettingValidate } = usePluginSettings();
 
-const defaultSettings = () => ({
-  enable: true,
-});
-const config = ref(defaultConfig());
+const { isLoading, fileInfo, defaultFileInfo, handlePostInfo } =
+  usePostStatus();
 
-const isLoading = ref(false);
 const closeModal = () => {
-  config.value = defaultConfig();
+  fileInfo.value = defaultFileInfo();
   props.modal.close();
 };
 
-// 系统设置
-let settings: Partial<ReturnType<typeof defaultSettings>> = {};
+// 处理 baseInfo 和 config
+const handleCurrentInfo = async () => {
+  // 临时信息
+  const title = props.file.basename;
+  const content = await props.file.vault.cachedRead(props.file);
+  const frontMatter = await getFrontMatterByFile(props.file, props.plugin.app);
+
+  // 修改 config baseInfo
+  handlePostInfo(title, content, frontMatter);
+};
 
 onMounted(async () => {
   // 读取配置
-  settings = await props.plugin.loadData();
+  settings.value = await props.plugin.loadData();
+
+  const validate = checkSettingValidate(settings.value);
+  if (!validate) {
+    return;
+  }
+
+  // 读取文章内容和相关信息
+  handleCurrentInfo();
 });
+
+// 监听发布时间模式
+watchEffect(() => {
+  if (fileInfo.value.publishTimeMode === "create_time") {
+    const ctime =
+      fileInfo.value.frontMatter?.create_time ?? props.file.stat.ctime;
+    const current = new Date(ctime).toLocaleString();
+    fileInfo.value.publish_time = current;
+  } else if (fileInfo.value.publishTimeMode === "current") {
+    fileInfo.value.publish_time = new Date().toLocaleString();
+  } else if (fileInfo.value.publishTimeMode === "custom") {
+    fileInfo.value.publish_time = "";
+  } else {
+    console.log("未尽事宜", fileInfo.value.publishTimeMode);
+  }
+});
+
+const handleCreatePost = async ({
+  token,
+  owner,
+  repo,
+  content,
+  title,
+  summary,
+  tags,
+  slug,
+}: any) => {
+  const res = await createPost({
+    token: token,
+    owner,
+    repo,
+    title: title,
+    slug: slug,
+    summary: summary,
+    tags: tags,
+    publishTime: fileInfo.value.publish_time,
+    noteId: fileInfo.value.noteId,
+    body: content,
+  });
+  // console.log(46, res);
+  const id = res.number as string;
+
+  if (res) {
+    new Notice("上传成功");
+    closeModal();
+    return id;
+  } else {
+    new Notice("上传失败");
+  }
+};
+
+const handleUpdatePost = async ({
+  token = "",
+  owner = "",
+  repo = "",
+  content = "",
+  title = "",
+  summary = "",
+  tags = [] as string[],
+  slug = "",
+  noteId = "",
+}) => {
+  // 更新文章
+  const res = await updatePost({
+    token,
+    owner,
+    repo,
+    title: title,
+    slug: slug,
+    summary: summary,
+    tags: tags,
+    publishTime: fileInfo.value.publish_time,
+    noteId: noteId,
+    body: content,
+  });
+  console.log(47, res);
+  const id = res.number as string;
+
+  if (res) {
+    new Notice("更新成功");
+    closeModal();
+    return id;
+  } else {
+    new Notice("更新失败");
+  }
+};
+
+const handleSubmit = async ({
+  token = "",
+  owner = "",
+  repo = "",
+  content = "",
+  title = "",
+  summary = "",
+  tags = [] as string[],
+  slug = "",
+  noteID = "",
+}) => {
+  const hasNoteID = !!noteID;
+  const isUpdate = hasNoteID;
+
+  // 如果发布时间是自定义，但是内容为空，设置当前时间
+  if (
+    fileInfo.value.publishTimeMode === "custom" &&
+    !fileInfo.value.publish_time
+  ) {
+    fileInfo.value.publish_time = new Date().toLocaleString();
+  }
+
+  if (isUpdate) {
+    // 走更新
+    const id = await handleUpdatePost({
+      token,
+      owner,
+      repo,
+      content,
+      title,
+      summary,
+      tags,
+      slug,
+      noteId: noteID,
+    });
+    if (!id) {
+      return;
+    }
+  } else {
+    // 走创建
+    const id = await handleCreatePost({
+      token,
+      owner,
+      repo,
+
+      content,
+      title,
+      summary,
+      tags,
+      slug,
+    });
+
+    if (id) {
+      noteID = id;
+    }
+  }
+
+  const ctime =
+    fileInfo.value.frontMatter?.create_time ?? props.file.stat.ctime;
+
+  await updateFrontMatterByFile(
+    props.file,
+    props.plugin.app,
+
+    {
+      slug: slug,
+      description: summary,
+      // tags 要去掉 post
+      tags: tags.filter((i) => i !== "post"),
+      noteId_gitee: noteID,
+
+      create_time: new Date(ctime).toLocaleString(),
+      update_time: new Date().toLocaleString(),
+      publish_time: fileInfo.value.publish_time,
+    }
+  );
+};
+
+const startUpload = async () => {
+  if (isLoading.value) {
+    new Notice("正在上传中");
+    return;
+  }
+
+  isLoading.value = true;
+  let tags = fileInfo.value.rawTags.split(/[,，]/);
+  // 转 set 去重
+  tags = Array.from(new Set(tags)).filter((i) => i);
+  if (!tags.some((i) => i === "post")) {
+    tags.unshift("post");
+  }
+
+  const currentConfig = {
+    token: settings.value.accessToken as string,
+    owner: settings.value.owner,
+    repo: settings.value.repo,
+    // file
+    content: fileInfo.value.content,
+    title: fileInfo.value.title,
+    summary: fileInfo.value.summary,
+    tags: tags,
+    slug: fileInfo.value.slug,
+    noteID: fileInfo.value.noteId,
+  };
+  // 1. 上传
+  await handleSubmit(currentConfig);
+  isLoading.value = false;
+};
 </script>
 
 <style></style>

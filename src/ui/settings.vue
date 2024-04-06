@@ -44,6 +44,38 @@
       <span v-else>err</span>
     </div>
   </div>
+  <!-- owner -->
+  <div class="setting-item">
+    <div class="setting-item-info">
+      <div class="setting-item-name">owner</div>
+      <div class="setting-item-description">user name</div>
+    </div>
+    <div class="setting-item-control">
+      <input
+        v-model="settings.owner"
+        type="text"
+        placeholder="请输入 owner"
+        spellcheck="false"
+        tabindex="2"
+      />
+    </div>
+  </div>
+  <!-- repo -->
+  <div class="setting-item">
+    <div class="setting-item-info">
+      <div class="setting-item-name">Repo</div>
+      <div class="setting-item-description">repo name</div>
+    </div>
+    <div class="setting-item-control">
+      <input
+        v-model="settings.repo"
+        type="text"
+        placeholder="请输入 repo"
+        spellcheck="false"
+        tabindex="2"
+      />
+    </div>
+  </div>
 
   <div class="setting-item-control" style="margin-top: 18px">
     <button @click="settings = defaultSettings()">重置配置</button>
@@ -51,27 +83,25 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { Notice, Plugin, requestUrl } from "obsidian";
+import { Notice, Plugin } from "obsidian";
 import { onMounted, ref } from "vue";
-import { isAuthOk } from "./model";
+import { defaultSettings, isAuthOk } from "./model";
 
 const props = defineProps<{
   plugin: Plugin;
 }>();
 
-const defaultSettings = () => ({
-  name: "",
-  enable: true,
-  isAuth: false,
-  accessToken: "228a33ca4192f43957b97590fde72c3f",
-});
 const settings = ref(defaultSettings());
 
+const owner = ref("");
+
 const testConnect = async () => {
-  const valid = await isAuthOk(settings.value.accessToken);
-  if (valid) {
+  const res = await isAuthOk(settings.value.accessToken);
+  console.log(4, res);
+  if (res.login) {
     new Notice("连接成功");
     settings.value.isAuth = true;
+    owner.value = res.login;
   } else {
     new Notice("连接失败");
     settings.value.isAuth = false;
@@ -85,21 +115,6 @@ const save = async () => {
   await props.plugin.saveData(newSeeting);
   new Notice("保存成功");
 };
-
-const fetchData = () => {
-  const token = "";
-  requestUrl({
-    url: "/",
-    method: "GET",
-    contentType: "application/json",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }).then(({ json }) => {
-    return json;
-  });
-};
-// fetchData()
 
 onMounted(async () => {
   if (props.plugin) {
