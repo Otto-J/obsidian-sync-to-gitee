@@ -215,10 +215,10 @@ const handleCreatePost = async ({
 
   if (res) {
     new Notice("上传成功");
-    closeModal();
     return id;
   } else {
     new Notice("上传失败");
+    return null;
   }
 };
 
@@ -243,8 +243,8 @@ const handleUpdatePost = async ({
     noteId: noteId,
     body: content,
   });
-  console.log(47, res);
   const id = res.number as string;
+  console.log("update post", res);
 
   if (res) {
     new Notice("更新成功");
@@ -283,7 +283,10 @@ const handleSubmit = async ({
       slug,
       noteId: noteID,
     });
+    // const id = "I9GNGQ";
+
     if (!id) {
+      console.log("更新失败 handleUpdatePost");
       return;
     }
   } else {
@@ -295,6 +298,7 @@ const handleSubmit = async ({
       tags,
       slug,
     });
+    // const id = "I9GNGQ";
 
     if (id) {
       noteID = id;
@@ -304,24 +308,34 @@ const handleSubmit = async ({
   const ctime =
     fileInfo.value.frontMatter?.create_time ?? props.file.stat.ctime;
 
+  console.log(
+    "current file frontmatter",
+    JSON.parse(JSON.stringify(fileInfo.value.frontMatter))
+  );
+
+  const meta = {
+    slug: slug,
+    description: summary,
+    // tags 要去掉 post
+    tags: tags.filter((i) => i !== "post"),
+    noteId_gitee: noteID,
+
+    create_time: new Date(ctime).toLocaleString(),
+    update_time: new Date().toLocaleString(),
+    publish_time: fileInfo.value.publish_time
+      ? new Date(fileInfo.value.publish_time).toLocaleString()
+      : new Date().toLocaleString(),
+  };
+  console.log("update frontmatter meta", meta);
+
   await updateFrontMatterByFile(
     props.file,
     props.plugin.app,
 
-    {
-      slug: slug,
-      description: summary,
-      // tags 要去掉 post
-      tags: tags.filter((i) => i !== "post"),
-      noteId_gitee: noteID,
-
-      create_time: new Date(ctime).toLocaleString(),
-      update_time: new Date().toLocaleString(),
-      publish_time: fileInfo.value.publish_time
-        ? new Date(fileInfo.value.publish_time).toLocaleString()
-        : new Date().toLocaleString(),
-    }
+    meta
   );
+
+  closeModal();
 };
 
 const startUpload = async () => {
