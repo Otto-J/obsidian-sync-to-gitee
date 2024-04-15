@@ -248,10 +248,10 @@ const handleUpdatePost = async ({
 
   if (res) {
     new Notice("更新成功");
-    closeModal();
     return id;
   } else {
     new Notice("更新失败");
+    return null;
   }
 };
 
@@ -328,12 +328,7 @@ const handleSubmit = async ({
   };
   console.log("update frontmatter meta", meta);
 
-  await updateFrontMatterByFile(
-    props.file,
-    props.plugin.app,
-
-    meta
-  );
+  await updateFrontMatterByFile(props.file, props.plugin.app, meta);
 
   closeModal();
 };
